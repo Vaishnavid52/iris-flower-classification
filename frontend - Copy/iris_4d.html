@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Iris — Neural Classifier</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --cream:   #F2EDE4;
+  --stone:   #D8CFC2;
+  --ink:     #1A1814;
+  --ink2:    #3D3830;
+  --setosa:  #7B6CF6;
+  --vers:    #2BB5A0;
+  --virg:    #E8546A;
+  --warm:    #C4A882;
+  --panel:   rgba(242,237,228,0.72);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 140px 0 160px;
+}
+@media (max-height: 760px) {
+  .hero { min-height: auto; padding: 110px 0 90px; }
+  .hero-title { font-size: clamp(38px, 6vw, 72px) !important; margin-bottom: 20px !important; }
+  .hero-sub { margin-bottom: 28px !important; }
+  .hero-eyebrow { margin-bottom: 16px !important; }
+}
+
+#hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 8vw;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--warm);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero-eyebrow::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--warm);
+  display: inline-block;
+}
+
+.hero-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(52px, 8vw, 110px);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  margin-bottom: 32px;
+}
+.hero-title em {
+  font-style: normal;
+  color: var(--setosa);
+  display: block;
+}
+
+.hero-sub {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink2);
+  max-width: 420px;
+  font-weight: 300;
+  margin-bottom: 48px;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 28px;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.15s;
+  letter-spacing: 0.01em;
+}
+.hero-cta:hover { background: var(--ink2); transform: translateY(-2px); }
+.hero-cta svg { transition: transform 0.2s; }
+.hero-cta:hover svg { transform: translateX(4px); }
+
+/* floating orb */
+.hero-orb {
+  position: absolute;
+  right: 6vw;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(220px, 30vw, 460px);
+  height: clamp(220px, 30vw, 460px);
+  max-height: 70%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 38%,
+    rgba(123,108,246,0.22) 0%,
+    rgba(43,181,160,0.14) 45%,
+    rgba(232,84,106,0.08) 100%);
+  filter: blur(2px);
+  animation: orb-breathe 7s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-orb::after {
+  content: '';
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  border: 1px solid rgba(123,108,246,0.18);
+  animation: orb-breathe 7s ease-in-out infinite reverse;
+}
+@keyframes orb-breathe {
+  0%,100% { transform: translateY(-50%) scale(1); }
+  50%      { transform: translateY(-50%) scale(1.05); }
+}
+
+/* scroll indicator */
+.scroll-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--warm);
+  z-index: 2;
+  padding: 0 8vw;
+  margin-top: 40px;
+  position: relative;
+}
+.scroll-line {
+  width: 40px;
+  height: 1px;
+  background: var(--warm);
+  position: relative;
+  overflow: hidden;
+}
+.scroll-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  animation: scan 2s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+@keyframes scan { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+
+/* ── CLASSIFY SECTION ── */
+.classify {
+  padding: 120px 8vw;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.classify-left {}
+
+.section-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--warm);
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+
+.section-body {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink2);
+  font-weight: 300;
+  margin-bottom: 48px;
+  max-width: 360px;
+}
+
+/* measurement inputs */
+.measures { display: flex; flex-direction: column; gap: 28px; }
+
+.measure-item {}
+.measure-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.measure-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+.measure-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--setosa);
+  transition: color 0.3s;
+}
+
+.track {
+  position: relative;
+  height: 2px;
+  background: var(--stone);
+  border-radius: 1px;
+}
+.track-fill {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--ink);
+  transition: width 0.1s;
+  pointer-events: none;
+}
+
+input[type=range] {
+  position: absolute;
+  inset: -8px 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  height: 18px;
+  -webkit-appearance: none;
+}
+
+.classify-btn {
+  margin-top: 40px;
+  width: 100%;
+  padding: 16px;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s;
+}
+.classify-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.classify-btn:hover { transform: translateY(-2px); }
+.classify-btn:hover::after { opacity: 1; }
+
+/* ── RESULT PANEL ── */
+.classify-right {}
+
+.result-panel {
+  background: var(--panel);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--stone);
+  border-radius: 24px;
+  padding: 36px;
+  position: sticky;
+  top: 40px;
+  min-height: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  transition: border-color 0.5s, box-shadow 0.5s;
+}
+.result-panel.active-setosa { border-color: rgba(123,108,246,0.4); box-shadow: 0 8px 60px rgba(123,108,246,0.1); }
+.result-panel.active-vers   { border-color: rgba(43,181,160,0.4);  box-shadow: 0 8px 60px rgba(43,181,160,0.1); }
+.result-panel.active-virg   { border-color: rgba(232,84,106,0.4);  box-shadow: 0 8px 60px rgba(232,84,106,0.1); }
+
+.result-idle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--stone);
+  text-align: center;
+}
+.result-idle-icon {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  border: 1px dashed var(--stone);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.result-idle p { font-size: 13px; font-weight: 300; }
+
+.result-content { display: none; flex-direction: column; gap: 28px; }
+.result-content.visible { display: flex; }
+
+.result-species-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  transition: color 0.4s;
+}
+.result-confidence-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 4px;
+}
+.result-conf-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 28px;
+  font-weight: 500;
+  transition: color 0.4s;
+}
+.result-conf-label {
+  font-size: 12px;
+  color: var(--ink2);
+  font-weight: 300;
+}
+
+/* prob bars */
+.prob-section {}
+.prob-section-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--warm);
+  margin-bottom: 16px;
+  font-family: 'DM Mono', monospace;
+}
+.prob-list { display: flex; flex-direction: column; gap: 14px; }
+.prob-row {}
+.prob-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.prob-row-name { font-size: 13px; font-weight: 400; }
+.prob-row-pct  { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink2); }
+
+.prob-track-outer {
+  height: 3px;
+  background: var(--stone);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.prob-track-fill {
+  height: 100%;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.7s cubic-bezier(0.34,1.3,0.64,1);
+}
+.prob-track-fill.s  { background: var(--setosa); }
+.prob-track-fill.ve { background: var(--vers); }
+.prob-track-fill.vi { background: var(--virg); }
+
+/* neighbors */
+.nn-section {}
+.nn-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--warm);
+  margin-bottom: 14px;
+  font-family: 'DM Mono', monospace;
+}
+.nn-list { display: flex; gap: 10px; }
+.nn-card {
+  flex: 1;
+  padding: 12px;
+  background: rgba(255,255,255,0.5);
+  border: 1px solid var(--stone);
+  border-radius: 12px;
+  font-size: 11px;
+  transition: border-color 0.3s;
+}
+.nn-card:hover { border-color: var(--ink); }
+.nn-sp {
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.nn-dist {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--warm);
+}
+
+/* ── SPECIES INFO CARD ── */
+.species-info {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--stone);
+  display: none;
+}
+.species-info.visible { display: block; }
+.si-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--warm);
+  margin-bottom: 10px;
+}
+.si-fact {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink2);
+  font-weight: 300;
+  margin-bottom: 14px;
+}
+.si-meta { display: flex; gap: 18px; }
+.si-meta-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warm);
+  margin-bottom: 3px;
+}
+.si-meta-val { font-size: 12px; font-weight: 500; }
+
+/* ── FEATURE CONTRIBUTION ── */
+.contrib-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--stone);
+  display: none;
+}
+.contrib-section.visible { display: block; }
+.contrib-list { display: flex; flex-direction: column; gap: 10px; }
+.contrib-row { display: flex; align-items: center; gap: 12px; }
+.contrib-name { font-size: 11px; color: var(--ink2); width: 88px; flex-shrink: 0; }
+.contrib-track {
+  flex: 1; height: 4px; background: var(--stone);
+  border-radius: 2px; overflow: hidden;
+}
+.contrib-fill {
+  height: 100%; border-radius: 2px; background: var(--ink);
+  width: 0%; transition: width 0.6s cubic-bezier(0.34,1.3,0.64,1);
+}
+.contrib-pct {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--warm); width: 32px; text-align: right; flex-shrink: 0;
+}
+
+/* ── HISTORY TIMELINE ── */
+.history-section { padding: 0 8vw 120px; }
+.history-track {
+  display: flex; gap: 12px; overflow-x: auto;
+  padding-bottom: 8px; scrollbar-width: none;
+}
+.history-track::-webkit-scrollbar { display: none; }
+.history-card {
+  flex-shrink: 0; min-width: 168px; padding: 18px 20px;
+  background: rgba(255,255,255,0.5); border: 1px solid var(--stone);
+  border-radius: 16px; animation: hist-in 0.4s cubic-bezier(0.34,1.3,0.64,1);
+}
+@keyframes hist-in {
+  0%   { opacity:0; transform: translateX(-12px) scale(0.95); }
+  100% { opacity:1; transform: translateX(0) scale(1); }
+}
+.history-dot-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.history-dot { width: 8px; height: 8px; border-radius: 50%; }
+.history-species { font-size: 13px; font-weight: 600; }
+.history-conf { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink2); margin-bottom: 8px; }
+.history-vals { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--warm); line-height: 1.5; }
+.history-empty { font-size: 13px; color: var(--ink2); font-weight: 300; padding: 24px 0; }
+
+/* ── 3D SECTION ── */
+.viz-section {
+  padding: 0 8vw 120px;
+}
+.viz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+}
+.viz-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(28px, 3.5vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.viz-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--warm);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: right;
+}
+
+.viz-wrap {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  height: 560px;
+  border: 1px solid var(--stone);
+  background: var(--ink);
+}
+#scatter-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.viz-legend {
+  position: absolute;
+  top: 24px; left: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.viz-leg-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(242,237,228,0.7);
+  font-weight: 300;
+}
+.viz-leg-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.viz-hint {
+  position: absolute;
+  bottom: 20px;
+  right: 24px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: rgba(242,237,228,0.35);
+  letter-spacing: 0.08em;
+}
+
+/* ── STATS SECTION ── */
+.stats-section {
+  padding: 0 8vw 120px;
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 2px;
+}
+.stat-card {
+  padding: 40px 32px;
+  background: var(--ink);
+  color: var(--cream);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card:first-child { border-radius: 20px 0 0 20px; }
+.stat-card:last-child  { border-radius: 0 20px 20px 0; }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--setosa);
+  transform: scaleX(0);
+  transition: transform 0.4s;
+  transform-origin: left;
+}
+.stat-card:hover::before { transform: scaleX(1); }
+.stat-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.stat-label {
+  font-size: 12px;
+  color: rgba(242,237,228,0.45);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+}
+
+/* ── FOOTER ── */
+footer {
+  padding: 40px 8vw;
+  border-top: 1px solid var(--stone);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.footer-brand {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.footer-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--warm);
+  letter-spacing: 0.1em;
+}
+
+/* ── API STATUS ── */
+.api-badge {
+  position: fixed;
+  top: 24px; right: 28px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(242,237,228,0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--stone);
+  border-radius: 100px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink2);
+}
+.api-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--stone);
+  transition: background 0.4s;
+}
+.api-dot.live { background: var(--vers); animation: blink 2.5s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+/* ── PARTICLES ── */
+.ptcl {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 50%;
+  animation: ptcl-go 0.9s ease-out forwards;
+}
+@keyframes ptcl-go {
+  0%   { opacity:0.9; transform:translate(0,0) scale(1); }
+  100% { opacity:0;   transform:translate(var(--tx),var(--ty)) scale(0.2); }
+}
+
+@media (max-width: 860px) {
+  .classify { grid-template-columns:1fr; gap:48px; }
+  .stats-section { grid-template-columns:1fr 1fr; }
+  .stat-card:nth-child(2) { border-radius: 0 20px 0 0; }
+  .stat-card:nth-child(3) { border-radius: 0 0 20px 0; }
+  .hero-orb { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- API BADGE -->
+<div class="api-badge">
+  <div class="api-dot" id="api-dot"></div>
+  <span id="api-txt">connecting</span>
+</div>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-orb"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">Iris Neural Classifier &nbsp;·&nbsp; SVM · 97.3% accuracy</div>
+    <h1 class="hero-title">
+      Three species.<br>
+      <em>One measurement.</em>
+    </h1>
+    <p class="hero-sub">
+      Feed four numbers from a flower. The model — trained on 150 specimens — tells you exactly which species it is and how certain it is.
+    </p>
+    <a href="#classify" class="hero-cta">
+      Classify a flower
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+    <div class="scroll-hint" style="padding:0;margin-top:48px;">
+      <div class="scroll-line"></div>
+      scroll
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CLASSIFY ═══ -->
+<section class="classify" id="classify">
+  <div class="classify-left">
+    <div class="section-tag">Classifier</div>
+    <h2 class="section-title">Measure your flower</h2>
+    <p class="section-body">Adjust the four measurements below. The model predicts in real time as you move the sliders.</p>
+
+    <div class="measures">
+      <div class="measure-item">
+        <div class="measure-top">
+          <span class="measure-name">Sepal Length</span>
+          <span class="measure-val" id="v-sl">5.1 cm</span>
+        </div>
+        <div class="track" id="t-sl">
+          <div class="track-fill" id="f-sl"></div>
+          <input type="range" id="sl" min="4.0" max="8.0" step="0.1" value="5.1">
+        </div>
+      </div>
+      <div class="measure-item">
+        <div class="measure-top">
+          <span class="measure-name">Sepal Width</span>
+          <span class="measure-val" id="v-sw">3.5 cm</span>
+        </div>
+        <div class="track" id="t-sw">
+          <div class="track-fill" id="f-sw"></div>
+          <input type="range" id="sw" min="1.5" max="5.0" step="0.1" value="3.5">
+        </div>
+      </div>
+      <div class="measure-item">
+        <div class="measure-top">
+          <span class="measure-name">Petal Length</span>
+          <span class="measure-val" id="v-pl">1.4 cm</span>
+        </div>
+        <div class="track" id="t-pl">
+          <div class="track-fill" id="f-pl"></div>
+          <input type="range" id="pl" min="1.0" max="7.0" step="0.1" value="1.4">
+        </div>
+      </div>
+      <div class="measure-item">
+        <div class="measure-top">
+          <span class="measure-name">Petal Width</span>
+          <span class="measure-val" id="v-pw">0.2 cm</span>
+        </div>
+        <div class="track" id="t-pw">
+          <div class="track-fill" id="f-pw"></div>
+          <input type="range" id="pw" min="0.1" max="2.6" step="0.1" value="0.2">
+        </div>
+      </div>
+    </div>
+
+    <button class="classify-btn" id="classify-btn" onclick="doPredict()">
+      Classify flower
+    </button>
+  </div>
+
+  <div class="classify-right">
+    <div class="result-panel" id="result-panel">
+      <div class="result-idle" id="result-idle">
+        <div class="result-idle-icon">&#10022;</div>
+        <p>Move the sliders<br>to identify your flower</p>
+      </div>
+      <div class="result-content" id="result-content">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--warm);margin-bottom:10px">Identified species</div>
+          <div class="result-species-name" id="res-name">—</div>
+          <div class="result-confidence-row">
+            <span class="result-conf-num" id="res-conf">—</span>
+            <span class="result-conf-label">confidence</span>
+          </div>
+        </div>
+        <div class="prob-section">
+          <div class="prob-section-label">All probabilities</div>
+          <div class="prob-list">
+            <div class="prob-row">
+              <div class="prob-row-top">
+                <span class="prob-row-name">Setosa</span>
+                <span class="prob-row-pct" id="pct-s">—</span>
+              </div>
+              <div class="prob-track-outer"><div class="prob-track-fill s" id="bar-s"></div></div>
+            </div>
+            <div class="prob-row">
+              <div class="prob-row-top">
+                <span class="prob-row-name">Versicolor</span>
+                <span class="prob-row-pct" id="pct-ve">—</span>
+              </div>
+              <div class="prob-track-outer"><div class="prob-track-fill ve" id="bar-ve"></div></div>
+            </div>
+            <div class="prob-row">
+              <div class="prob-row-top">
+                <span class="prob-row-name">Virginica</span>
+                <span class="prob-row-pct" id="pct-vi">—</span>
+              </div>
+              <div class="prob-track-outer"><div class="prob-track-fill vi" id="bar-vi"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="nn-section">
+          <div class="nn-label">Nearest matches in dataset</div>
+          <div class="nn-list" id="nn-list"></div>
+        </div>
+        <div class="species-info" id="species-info">
+          <div class="si-label">About this species</div>
+          <div class="si-fact" id="si-fact">—</div>
+          <div class="si-meta">
+            <div class="si-meta-item">
+              <div class="si-meta-label">Native region</div>
+              <div class="si-meta-val" id="si-region">—</div>
+            </div>
+            <div class="si-meta-item">
+              <div class="si-meta-label">Bloom season</div>
+              <div class="si-meta-val" id="si-bloom">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="contrib-section" id="contrib-section">
+          <div class="si-label">What drove this prediction</div>
+          <div class="contrib-list" id="contrib-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HISTORY ═══ -->
+<section class="history-section">
+  <div class="section-tag">Session log</div>
+  <h2 class="section-title" style="margin-bottom:24px;font-size:clamp(24px,3vw,36px)">Recent predictions</h2>
+  <div class="history-track" id="history-track">
+    <div class="history-empty">Your last 6 predictions will appear here as you experiment with the sliders.</div>
+  </div>
+</section>
+
+<!-- ═══ 3D VIZ ═══ -->
+<section class="viz-section" id="viz">
+  <div class="viz-header">
+    <div>
+      <div class="section-tag">PCA · 3-axis projection</div>
+      <div class="viz-title">150 flowers in space</div>
+    </div>
+    <div class="viz-meta">Drag to rotate &nbsp;·&nbsp; Scroll to zoom</div>
+  </div>
+  <div class="viz-wrap">
+    <canvas id="scatter-canvas"></canvas>
+    <div class="viz-legend">
+      <div class="viz-leg-row"><div class="viz-leg-dot" style="background:#7B6CF6"></div>Setosa</div>
+      <div class="viz-leg-row"><div class="viz-leg-dot" style="background:#2BB5A0"></div>Versicolor</div>
+      <div class="viz-leg-row"><div class="viz-leg-dot" style="background:#E8546A"></div>Virginica</div>
+    </div>
+    <div class="viz-hint">4th dimension encoded as pulse frequency</div>
+  </div>
+</section>
+
+<!-- ═══ STATS ═══ -->
+<section class="stats-section">
+  <div class="stat-card">
+    <div class="stat-num" id="s-acc">—</div>
+    <div class="stat-label">Test accuracy</div>
+  </div>
+  <div class="stat-card" style="--c:var(--vers)">
+    <div class="stat-num" id="s-cv">—</div>
+    <div class="stat-label">CV accuracy</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num" id="s-f1">—</div>
+    <div class="stat-label">F1 score</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">SVM</div>
+    <div class="stat-label">Model · linear kernel</div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-brand">Iris Classifier</div>
+  <div class="footer-meta">Phase 4 &nbsp;·&nbsp; FastAPI + Three.js &nbsp;·&nbsp; 97.3% accuracy</div>
+</footer>
+
+<script>
+// ═══════════════════════════ HERO CANVAS (flowing lines) ═══════════════════
+const hc  = document.getElementById('hero-canvas');
+const hx  = hc.getContext('2d');
+let HW, HH, lines=[];
+
+function initHero(){
+  HW = hc.width  = hc.offsetWidth;
+  HH = hc.height = hc.offsetHeight;
+  lines = Array.from({length:18}, (_,i)=>({
+    y: (HH/(18)) * i + HH/36,
+    pts: Array.from({length:Math.ceil(HW/60)+2}, (_,j)=>({
+      x: j*60, base: (HH/(18))*i+HH/36,
+      phase: Math.random()*Math.PI*2,
+      amp: 8+Math.random()*18,
+      spd: 0.003+Math.random()*0.005,
+    })),
+    alpha: 0.04+Math.random()*0.07,
+  }));
+}
+
+let ht=0;
+function drawHero(){
+  hx.clearRect(0,0,HW,HH);
+  ht+=1;
+  lines.forEach(l=>{
+    hx.beginPath();
+    l.pts.forEach((p,i)=>{
+      const cy = p.base + Math.sin(ht*p.spd+p.phase)*p.amp;
+      i===0 ? hx.moveTo(p.x,cy) : hx.lineTo(p.x,cy);
+    });
+    hx.strokeStyle = `rgba(26,24,20,${l.alpha})`;
+    hx.lineWidth = 0.7;
+    hx.stroke();
+  });
+  requestAnimationFrame(drawHero);
+}
+initHero(); drawHero();
+window.addEventListener('resize', initHero);
+
+// ═══════════════════════════ SLIDERS ═══════════════════════════════════════
+const sliderCfg = [
+  {id:'sl', vid:'v-sl', fid:'f-sl', min:4.0, max:8.0},
+  {id:'sw', vid:'v-sw', fid:'f-sw', min:1.5, max:5.0},
+  {id:'pl', vid:'v-pl', fid:'f-pl', min:1.0, max:7.0},
+  {id:'pw', vid:'v-pw', fid:'f-pw', min:0.1, max:2.6},
+];
+
+function updateSlider(cfg){
+  const el  = document.getElementById(cfg.id);
+  const val = parseFloat(el.value);
+  document.getElementById(cfg.vid).textContent = val.toFixed(1)+' cm';
+  const pct = (val-cfg.min)/(cfg.max-cfg.min)*100;
+  document.getElementById(cfg.fid).style.width = pct+'%';
+}
+
+let debounce;
+sliderCfg.forEach(cfg=>{
+  updateSlider(cfg);
+  document.getElementById(cfg.id).addEventListener('input', ()=>{
+    updateSlider(cfg);
+    clearTimeout(debounce);
+    debounce = setTimeout(doPredict, 350);
+  });
+});
+
+// ═══════════════════════════ PARTICLES ════════════════════════════════════
+function burst(x,y,col){
+  for(let i=0;i<22;i++){
+    const el = document.createElement('div');
+    el.className='ptcl';
+    const ang = Math.random()*Math.PI*2;
+    const d   = 50+Math.random()*110;
+    const sz  = 3+Math.random()*5;
+    el.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;
+      background:${col};--tx:${Math.cos(ang)*d}px;--ty:${Math.sin(ang)*d}px;
+      animation-duration:${0.5+Math.random()*0.5}s;`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1100);
+  }
+}
+
+// ═══════════════════════════ API ══════════════════════════════════════════
+const API = 'https://iris-flower-classification-production-d9b1.up.railway.app';
+const SC = {Setosa:'#7B6CF6', Versicolor:'#2BB5A0', Virginica:'#E8546A'};
+const SCLS = {Setosa:'active-setosa', Versicolor:'active-vers', Virginica:'active-virg'};
+
+async function checkAPI(){
+  try{
+    const r=await fetch(API+'/');
+    if(r.ok){
+      document.getElementById('api-dot').classList.add('live');
+      document.getElementById('api-txt').textContent='API live';
+      loadDataset();
+      loadStats();
+      doPredict();
+    }
+  } catch {
+    document.getElementById('api-txt').textContent='API offline';
+  }
+}
+
+async function loadStats(){
+  try{
+    const r=await fetch(API+'/model-stats');
+    const d=await r.json();
+    document.getElementById('s-acc').textContent=(d.metrics.test_accuracy*100).toFixed(1)+'%';
+    document.getElementById('s-cv').textContent=(d.metrics.cv_mean*100).toFixed(1)+'%';
+    document.getElementById('s-f1').textContent=(d.metrics.f1_score*100).toFixed(1)+'%';
+  } catch {}
+}
+
+async function doPredict(){
+  const body={
+    sepal_length:parseFloat(document.getElementById('sl').value),
+    sepal_width: parseFloat(document.getElementById('sw').value),
+    petal_length:parseFloat(document.getElementById('pl').value),
+    petal_width: parseFloat(document.getElementById('pw').value),
+  };
+  try{
+    const r=await fetch(API+'/predict',{method:'POST',
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    const d=await r.json();
+    showResult(d, body);
+  } catch{}
+}
+
+const SPECIES_FACTS = {
+  Setosa: {
+    fact: "The smallest of the three — short, broad petals and a compact, almost miniature look. Easiest species to separate from the other two; no overlap in petal size.",
+    region: "Arctic & subarctic",
+    bloom: "Late spring"
+  },
+  Versicolor: {
+    fact: "A mid-sized iris with a blue-violet bloom. Sits right in the overlap zone between Setosa and Virginica, which is why it's the hardest of the three to classify with full certainty.",
+    region: "Eastern N. America",
+    bloom: "Early summer"
+  },
+  Virginica: {
+    fact: "The largest of the three species, with the longest petals of the group. Closely related to Versicolor — measurements alone occasionally blur the line between them.",
+    region: "Eastern US wetlands",
+    bloom: "Mid summer"
+  }
+};
+
+let historyData = [];
+
+function showResult(d, body){
+  const col = SC[d.species];
+  const panel=document.getElementById('result-panel');
+  panel.className='result-panel '+SCLS[d.species];
+
+  document.getElementById('result-idle').style.display='none';
+  const rc=document.getElementById('result-content');
+  rc.classList.add('visible');
+
+  const nm=document.getElementById('res-name');
+  nm.textContent=d.species;
+  nm.style.color=col;
+
+  const cf=document.getElementById('res-conf');
+  cf.textContent=d.confidence.toFixed(1)+'%';
+  cf.style.color=col;
+
+  setBar('s', d.probabilities.Setosa);
+  setBar('ve',d.probabilities.Versicolor);
+  setBar('vi',d.probabilities.Virginica);
+
+  const nnl=document.getElementById('nn-list');
+  nnl.innerHTML=d.nearest_neighbors.map(n=>`
+    <div class="nn-card">
+      <div class="nn-sp" style="color:${SC[n.species]}">${n.species}</div>
+      <div class="nn-dist">dist ${n.distance}</div>
+      <div style="font-size:10px;color:#888;margin-top:4px">#${n.index}</div>
+    </div>`).join('');
+
+  // ── species info card ──
+  const info = SPECIES_FACTS[d.species];
+  document.getElementById('species-info').classList.add('visible');
+  document.getElementById('si-fact').textContent = info.fact;
+  document.getElementById('si-region').textContent = info.region;
+  document.getElementById('si-bloom').textContent = info.bloom;
+
+  // ── feature contribution (using |scaled value| as proxy for influence) ──
+  showContribution(d.input_scaled, col);
+
+  // ── prediction history ──
+  pushHistory(d, body, col);
+
+  // highlight in 3D
+  highlightNN(d.nearest_neighbors.map(n=>n.index), col);
+
+  // particles from button
+  const btn=document.getElementById('classify-btn');
+  const r=btn.getBoundingClientRect();
+  burst(r.left+r.width/2, r.top+r.height/2, col);
+
+  // place user point
+  placeUser(d.species_id, d.input_scaled, col);
+}
+
+function showContribution(scaled, col){
+  const names = ['Sepal Len','Sepal Wid','Petal Len','Petal Wid'];
+  const abs   = scaled.map(v=>Math.abs(v));
+  const total = abs.reduce((a,b)=>a+b, 0) || 1;
+  const pcts  = abs.map(v => v/total*100);
+
+  document.getElementById('contrib-section').classList.add('visible');
+  const list = document.getElementById('contrib-list');
+  list.innerHTML = names.map((n,i)=>`
+    <div class="contrib-row">
+      <div class="contrib-name">${n}</div>
+      <div class="contrib-track"><div class="contrib-fill" id="cf-${i}" style="background:${col}"></div></div>
+      <div class="contrib-pct">${pcts[i].toFixed(0)}%</div>
+    </div>`).join('');
+
+  // animate width after paint
+  requestAnimationFrame(()=>{
+    pcts.forEach((p,i)=>{
+      const el = document.getElementById('cf-'+i);
+      if(el) el.style.width = p+'%';
+    });
+  });
+}
+
+function pushHistory(d, body, col){
+  historyData.unshift({
+    species: d.species, confidence: d.confidence, col,
+    sl: body.sepal_length, sw: body.sepal_width,
+    pl: body.petal_length, pw: body.petal_width,
+  });
+  historyData = historyData.slice(0, 6);
+
+  const track = document.getElementById('history-track');
+  track.innerHTML = historyData.map(h=>`
+    <div class="history-card">
+      <div class="history-dot-row">
+        <div class="history-dot" style="background:${h.col}"></div>
+        <div class="history-species">${h.species}</div>
+      </div>
+      <div class="history-conf">${h.confidence.toFixed(1)}% confidence</div>
+      <div class="history-vals">SL ${h.sl} · SW ${h.sw}<br>PL ${h.pl} · PW ${h.pw}</div>
+    </div>`).join('');
+}
+
+function setBar(id,pct){
+  document.getElementById('pct-'+id).textContent=(pct||0).toFixed(1)+'%';
+  document.getElementById('bar-'+id).style.width=(pct||0)+'%';
+}
+
+// ═══════════════════════════ THREE.JS SCATTER ════════════════════════════
+const scWrap  = document.querySelector('.viz-wrap');
+const scCvs   = document.getElementById('scatter-canvas');
+let threeReady = false;
+let renderer, scene3, cam3, group3, COLS3;
+let pts3=[], userMesh=null, rings3=[], autoRot=true;
+let rotY3=0, rotX3=0.25, zoom3=9, drag3=false, lx3=0, ly3=0;
+
+if (typeof THREE === 'undefined') {
+  console.warn('Three.js failed to load — 3D scatter disabled, predictions still work.');
+  const wrap = document.querySelector('.viz-wrap');
+  if (wrap) wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(242,237,228,0.4);font-family:DM Mono,monospace;font-size:12px;">3D view unavailable — visualization library failed to load</div>';
+} else {
+  threeReady = true;
+  renderer = new THREE.WebGLRenderer({canvas:scCvs, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setClearColor(0x1A1814, 1);
+
+  scene3 = new THREE.Scene();
+  cam3   = new THREE.PerspectiveCamera(50,1,0.01,200);
+  cam3.position.set(0,0,9);
+
+  scene3.add(new THREE.AmbientLight(0xffffff,0.5));
+  const pl1=new THREE.PointLight(0x7B6CF6,2,30); pl1.position.set(4,4,4); scene3.add(pl1);
+  const pl2=new THREE.PointLight(0x2BB5A0,1.5,30); pl2.position.set(-4,-3,3); scene3.add(pl2);
+
+  COLS3={0:0x7B6CF6, 1:0x2BB5A0, 2:0xE8546A};
+  group3=new THREE.Group();
+  scene3.add(group3);
+}
+
+scCvs.addEventListener('mousedown',e=>{drag3=true;lx3=e.clientX;ly3=e.clientY;autoRot=false;});
+window.addEventListener('mouseup',()=>drag3=false);
+window.addEventListener('mousemove',e=>{
+  if(!drag3)return;
+  rotY3+=(e.clientX-lx3)*0.007; rotX3+=(e.clientY-ly3)*0.007;
+  rotX3=Math.max(-1.3,Math.min(1.3,rotX3));
+  lx3=e.clientX;ly3=e.clientY;
+});
+scCvs.addEventListener('wheel',e=>{
+  zoom3=Math.max(4,Math.min(16,zoom3+e.deltaY*0.01));
+  e.preventDefault();
+},{passive:false});
+
+function buildScatter(pts){
+  if(!threeReady) return;
+  while(group3.children.length)group3.remove(group3.children[0]);
+  pts3=[];
+  pts.forEach(p=>{
+    const g=new THREE.SphereGeometry(0.065,10,10);
+    const m=new THREE.MeshPhongMaterial({
+      color:COLS3[p.species_id], emissive:COLS3[p.species_id],
+      emissiveIntensity:0.2, shininess:90, transparent:true, opacity:0.8
+    });
+    const mesh=new THREE.Mesh(g,m);
+    mesh.position.set(p.pca_x*3, p.pca_y*3, p.pca_z*3);
+    group3.add(mesh);
+    pts3.push({mesh,sid:p.species_id,idx:p.index??pts3.length});
+  });
+}
+
+function highlightNN(idxArr, colHex){
+  if(!threeReady) return;
+  const set=new Set(idxArr);
+  const c=parseInt(colHex.replace('#',''),16);
+  pts3.forEach((p,i)=>{
+    const hl=set.has(i);
+    p.mesh.material.emissiveIntensity=hl?1.2:0.2;
+    if(hl){p.mesh.material.emissive.setHex(c); p.mesh.scale.setScalar(2);}
+    else p.mesh.scale.setScalar(1);
+  });
+  setTimeout(()=>pts3.forEach(p=>{p.mesh.material.emissiveIntensity=0.2;p.mesh.scale.setScalar(1);}),2200);
+}
+
+function placeUser(sid, scaled, colHex){
+  if(!threeReady) return;
+  if(userMesh)group3.remove(userMesh);
+  rings3.forEach(r=>group3.remove(r)); rings3=[];
+  const c=parseInt(colHex.replace('#',''),16);
+  const g=new THREE.SphereGeometry(0.2,16,16);
+  const m=new THREE.MeshPhongMaterial({color:c,emissive:c,emissiveIntensity:1,shininess:200});
+  userMesh=new THREE.Mesh(g,m);
+  const cc=[[-1.6,-0.4,0],[0.5,0.25,0.2],[1.9,-0.2,-0.3]];
+  const jitter=(scaled||[0,0,0]).slice(0,3).map(v=>v*0.15);
+  userMesh.position.set(cc[sid][0]+jitter[0], cc[sid][1]+jitter[1], cc[sid][2]+jitter[2]);
+  group3.add(userMesh);
+  for(let i=0;i<3;i++){
+    const rg=new THREE.RingGeometry(0.01,0.06,32);
+    const rm=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.8,side:THREE.DoubleSide});
+    const ring=new THREE.Mesh(rg,rm);
+    ring.position.copy(userMesh.position);
+    ring.userData={ph:i*Math.PI*0.67,maxR:1.6+i*0.45,spd:1.0};
+    group3.add(ring); rings3.push(ring);
+  }
+}
+
+function resizeSc(){
+  if(!threeReady) return;
+  const W=scWrap.clientWidth, H=scWrap.clientHeight;
+  renderer.setSize(W,H,false);
+  cam3.aspect=W/H; cam3.updateProjectionMatrix();
+}
+resizeSc();
+window.addEventListener('resize',resizeSc);
+
+let t3=0;
+function loop3(){
+  if(!threeReady) return;
+  requestAnimationFrame(loop3);
+  t3+=0.016;
+  if(autoRot)rotY3+=0.003;
+  group3.rotation.y=rotY3; group3.rotation.x=rotX3;
+  cam3.position.z=zoom3;
+  pts3.forEach((p,i)=>{
+    const s=1+0.06*Math.sin(t3*1.2+i*0.28);
+    p.mesh.scale.multiplyScalar(0); p.mesh.scale.setScalar(s);
+  });
+  const pw=parseFloat(document.getElementById('pw').value)||0.2;
+  rings3.forEach(r=>{
+    const progress=((t3*r.userData.spd+r.userData.ph)%(Math.PI*2))/(Math.PI*2);
+    r.scale.setScalar(progress*r.userData.maxR+0.01);
+    r.material.opacity=Math.max(0,0.8-progress*0.8);
+    r.rotation.x=t3*0.25*(1+pw); r.rotation.y=t3*0.4*(1+pw);
+  });
+  if(userMesh){
+    const freq=1+pw*2.5;
+    userMesh.scale.setScalar(1+0.28*Math.abs(Math.sin(t3*freq)));
+  }
+  renderer.render(scene3,cam3);
+}
+loop3();
+
+async function loadDataset(){
+  try{
+    const r=await fetch(API+'/dataset');
+    const d=await r.json();
+    buildScatter(d.points);
+  }catch{}
+}
+
+checkAPI();
+</script>
+</body>
+</html>

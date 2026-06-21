@@ -11,7 +11,7 @@ A complete machine learning project that takes the classic Iris dataset from raw
 
 | Frontend | 3D Visualization |
 |---|---|
-| _add screenshot_ | _add screenshot_ |
+| ![Hero section](assets/hero.png) | ![3D scatter plot](assets/viz3d.png) |
 
 ---
 
