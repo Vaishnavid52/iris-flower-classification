@@ -2,8 +2,8 @@
 
 A complete machine learning project that takes the classic Iris dataset from raw data to a live, interactive web application — covering EDA, model training, a REST API, and a custom-built frontend with real-time 3D visualization.
 
-> **Live demo:** _add your deployed link here once Phase 5 is complete_
-> **Video walkthrough:** _optional — add a Loom/YouTube link here_
+> **🌐 Live demo:** [iris-flower-classification-production.netlify.app](https://iris-flower-classification-production.netlify.app)
+> **⚙️ Live API:** [iris-flower-classification-production-d9b1.up.railway.app/docs](https://iris-flower-classification-production-d9b1.up.railway.app/docs)
 
 ---
 
@@ -31,9 +31,11 @@ Raw data → EDA → Model training & tuning → REST API → Interactive fronte
 
 ```
 ┌─────────────────┐      ┌──────────────────┐      ┌─────────────────────┐
-│   iris_4d.html   │ ───▶ │  FastAPI Backend  │ ───▶ │  Trained SVM Model   │
+│  iris_4d.html    │ ───▶ │  FastAPI Backend  │ ───▶ │  Trained SVM Model   │
 │  (Vanilla JS +   │      │   (main.py)       │      │  (best_model.pkl)    │
 │   Three.js 3D)   │ ◀─── │  REST endpoints   │ ◀─── │  + StandardScaler    │
+│                  │      │                   │      │                     │
+│  Hosted: Netlify │      │ Hosted: Railway   │      │  Loaded at startup  │
 └─────────────────┘      └──────────────────┘      └─────────────────────┘
 ```
 
@@ -118,6 +120,8 @@ A FastAPI service that loads the trained model and exposes it over REST.
 | `GET` | `/model-stats` | Live accuracy, F1, precision, recall, feature importance |
 | `GET` | `/docs` | Auto-generated Swagger UI |
 
+**🌐 Live API:** [iris-flower-classification-production-d9b1.up.railway.app/docs](https://iris-flower-classification-production-d9b1.up.railway.app/docs) — deployed on Railway
+
 ### Run it locally
 
 ```bash
@@ -143,10 +147,14 @@ A single-file interactive web app (`frontend/iris_4d.html`) — no build step, n
 - Session history strip — tracks your last 6 predictions
 - Resilient design: if the 3D library fails to load, the rest of the app keeps working
 
+**🌐 Live site:** [iris-flower-classification-production.netlify.app](https://iris-flower-classification-production.netlify.app) — deployed on Netlify
+
 ### Run it locally
 
 1. Start the backend (see Phase 3 above)
 2. Open `frontend/iris_4d.html` directly in your browser
+
+> Note: the deployed version of `iris_4d.html` points to the live Railway API. To run fully locally, the `API` constant inside the file's `<script>` should point to `http://localhost:8000` instead.
 
 ---
 
@@ -205,7 +213,7 @@ Setosa ROC-AUC  : 1.000 (perfect separation)
 - [x] Phase 2 — Model training & tuning
 - [x] Phase 3 — FastAPI backend
 - [x] Phase 4 — Interactive frontend
-- [ ] Phase 5 — Deployment (Railway + Netlify/Vercel)
+- [x] Phase 5 — Deployment (Railway + Netlify)
 - [ ] Add unit tests for API endpoints
 - [ ] Add a CNN model that classifies from real flower photos
 
